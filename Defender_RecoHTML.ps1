@@ -17,13 +17,11 @@ $htmlContent = @"
     <thead>
         <tr>
             <th>Title</th>
-            <th>Severity</th>
             <th>Status</th>
             <th>Product Name</th>
             <th>Remediation Type</th>
             <th>Weaknesses</th>
             <th>Category</th>
-            <th>SubCategory</th>
             <th>Config Score Impact</th>
             <th>Exposure Impact</th>
             <th>Exposed Machines Count</th>
@@ -33,16 +31,15 @@ $htmlContent = @"
 "@
 
 foreach ($recommendation in $recommendations) {
+    $categoryDisplay = "$($recommendation.recommendationCategory) [$($recommendation.subCategory)]"
     $htmlContent += @"
         <tr>
             <td>$($recommendation.recommendationName)</td>
-            <td>$($recommendation.severity)</td>
             <td>$($recommendation.status)</td>
             <td>$($recommendation.productName)</td>
             <td>$($recommendation.remediationType)</td>
             <td>$($recommendation.weaknesses -join ', ')</td>
-            <td>$($recommendation.recommendationCategory)</td>
-            <td>$($recommendation.subCategory)</td>
+            <td>$categoryDisplay</td>
             <td>$($recommendation.configScoreImpact)</td>
             <td>$($recommendation.exposureImpact)</td>
             <td>$($recommendation.exposedMachinesCount)</td>
@@ -71,24 +68,10 @@ $htmlDocument = @"
         th { background-color: #f7630c; color: white; text-transform: uppercase; }
         tr:nth-child(even) { background-color: #f8f8f8; }
         tr:hover { background-color: #fff1e6; }
-        .severity-high { color: #d13438; font-weight: bold; }
-        .severity-medium { color: #ff8c00; }
-        .severity-low { color: #107c10; }
     </style>
 </head>
 <body>
 $htmlContent
-<script>
-    document.querySelectorAll('td:nth-child(2)').forEach(cell => {
-        if (cell.textContent.toLowerCase() === 'high') {
-            cell.classList.add('severity-high');
-        } else if (cell.textContent.toLowerCase() === 'medium') {
-            cell.classList.add('severity-medium');
-        } else if (cell.textContent.toLowerCase() === 'low') {
-            cell.classList.add('severity-low');
-        }
-    });
-</script>
 </body>
 </html>
 "@
