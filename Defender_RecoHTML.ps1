@@ -52,6 +52,7 @@ if (-not $recommendations -or $recommendations.Count -eq 0) {
 $htmlContent = @"
 <h1>MDE Recommendations Report</h1>
 <p>Generated on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
+<p>Total Recommendations: $($recommendations.Count)</p>
 <table>
     <thead>
         <tr>
