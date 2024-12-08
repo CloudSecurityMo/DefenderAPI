@@ -3,6 +3,45 @@ $tenantId = ''
 $appId = ''
 $appSecret = ''
 
+# Get the access token
+$resourceAppIdUri = 'https://api.securitycenter.microsoft.com'
+$oAuthUri = "https://login.microsoftonline.com/$tenantId/oauth2/token"
+$authBody = @{
+    resource = $resourceAppIdUri
+    client_id = $appId
+    client_secret = $appSecret
+    grant_type = 'client_credentials'
+}
+
+try {
+    $authResponse = Invoke-RestMethod -Method Post -Uri $oAuthUri -Body $authBody -ErrorAction Stop
+    $token = $authResponse.access_token
+}
+catch {
+    Write-Error "Failed to obtain access token: $_"
+    exit
+}
+
+# Set the API endpoint for recommendations
+$url = "https://api.securitycenter.microsoft.com/api/recommendations"
+
+# Set the request headers
+$headers = @{
+    'Content-Type' = 'application/json'
+    Accept = 'application/json'
+    Authorization = "Bearer $token"
+}
+
+# Send the request and get the response
+try {
+    $response = Invoke-RestMethod -Method Get -Uri $url -Headers $headers -ErrorAction Stop
+    $recommendations = $response.value
+}
+catch {
+    Write-Error "Failed to retrieve recommendations: $_"
+    exit
+}
+
 # Check if recommendations were retrieved
 if (-not $recommendations -or $recommendations.Count -eq 0) {
     Write-Error "No recommendations were retrieved. Please check your permissions and try again."
