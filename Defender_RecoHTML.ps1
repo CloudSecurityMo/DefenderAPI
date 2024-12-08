@@ -11,7 +11,7 @@ if (-not $recommendations -or $recommendations.Count -eq 0) {
 
 # Start building the HTML content with a table
 $htmlContent = @"
-<h1>Microsoft Defender Recommendations Report</h1>
+<h1>MDE Recommendations Report</h1>
 <p>Generated on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
 <table>
     <thead>
