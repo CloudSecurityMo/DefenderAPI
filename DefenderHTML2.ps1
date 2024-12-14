@@ -13,14 +13,8 @@ $authBody = @{
     grant_type = 'client_credentials'
 }
 
-try {
-    $authResponse = Invoke-RestMethod -Method Post -Uri $oAuthUri -Body $authBody -ErrorAction Stop
-    $token = $authResponse.access_token
-}
-catch {
-    Write-Error "Failed to obtain access token: $_"
-    exit
-}
+$authResponse = Invoke-RestMethod -Method Post -Uri $oAuthUri -Body $authBody -ErrorAction Stop
+$token = $authResponse.access_token
 
 # Set the API endpoint for recommendations
 $url = "https://api.securitycenter.microsoft.com/api/recommendations"
@@ -33,85 +27,73 @@ $headers = @{
 }
 
 # Send the request and get the response
-try {
-    $response = Invoke-RestMethod -Method Get -Uri $url -Headers $headers -ErrorAction Stop
-    $recommendations = $response.value
-}
-catch {
-    Write-Error "Failed to retrieve recommendations: $_"
-    exit
-}
+$response = Invoke-RestMethod -Method Get -Uri $url -Headers $headers -ErrorAction Stop
 
-# Check if recommendations were retrieved
-if (-not $recommendations -or $recommendations.Count -eq 0) {
-    Write-Error "No recommendations were retrieved. Please check your permissions and try again."
-    exit
-}
+# Extract the recommendations from the response
+$recommendations = $response.value
 
-# Start building the HTML content with a table
-$htmlContent = @"
-<h1 style="text-align:center; color:#f7630c;">Microsoft Defender Recommendations</h1>
-<p style="text-align:center;">Generated on: $(Get-Date -Format 'MMMM d, yyyy HH:mm:ss')</p>
-<p style="text-align:center;">Total Recommendations: $($recommendations.Count)</p>
-<table style="width:100%; border-collapse:collapse; margin-top:20px;">
-    <thead>
-        <tr style="background-color:#f7630c; color:white;">
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Title</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Status</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Product Name</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Remediation Type</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Weaknesses</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Category</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Config Score Impact</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Exposure Impact</th>
-            <th style="padding:12px; border-bottom:1px solid #ddd;">Exposed Machines Count</th>
-        </tr>
-    </thead>
-    <tbody>
-"@
+# Create a new array to store the modified recommendations
+$modifiedRecommendations = @()
 
 foreach ($recommendation in $recommendations) {
-    $categoryDisplay = "$($recommendation.recommendationCategory) [$($recommendation.subCategory)]"
-    $htmlContent += @"
-        <tr>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.recommendationName)</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.status)</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.productName)</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.remediationType)</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.weaknesses -join ', ')</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$categoryDisplay</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.configScoreImpact)</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.exposureImpact)</td>
-            <td style="border-bottom: 1px solid #ddd; padding: 8px;">$($recommendation.exposedMachinesCount)</td>
-        </tr>
-"@
+    # Get exposed devices for each recommendation
+    $exposedDevicesUrl = "https://api.securitycenter.microsoft.com/api/recommendations/$($recommendation.id)/machineReferences"
+    $exposedDevices = Invoke-RestMethod -Method Get -Uri $exposedDevicesUrl -Headers $headers -ErrorAction Stop
+
+    # Check the number of exposed devices
+    if ($exposedDevices.value.Count -ge 1000) {
+        $exposedDevicesList = "More than 1000 devices"
+    } else {
+        # Create a comma-separated list of exposed device names
+        $exposedDevicesList = ($exposedDevices.value | ForEach-Object { $_.computerDnsName }) -join ', '
+    }
+
+    # Create a custom object with only the specified properties
+    $customRecommendation = [PSCustomObject]@{
+        ProductName = $recommendation.productName
+        RecommendationName = $recommendation.recommendationName
+        Weaknesses = ($recommendation.weaknesses -join ', ')
+        RecommendationCategory = $recommendation.recommendationCategory
+        Subcategory = $recommendation.subCategory
+        RemediationType = $recommendation.remediationType
+        ExposedMachinesCount = $recommendation.exposedMachinesCount
+        ExposedDevices = $exposedDevicesList
+    }
+
+    $modifiedRecommendations += $customRecommendation
 }
 
-$htmlContent += @"
-    </tbody>
-</table>
-"@
+# Export to CSV
+$csvOutputPath = "C:\Users\mohamed.elmi\Downloads\Defender_Recommendations_Simplified.csv"
+$modifiedRecommendations | Export-Csv -Path $csvOutputPath -NoTypeInformation
 
-# Create the full HTML document
-$htmlDocument = @"
+# Export to HTML
+$htmlOutputPath = "C:\Users\mohamed.elmi\Downloads\Defender_Recommendations_Simplified.html"
+$htmlContent = @"
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Microsoft Defender Recommendations Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1600px; margin: auto; padding: 20px; }
+        h1 { color: #f7630c; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f7630c; color: white; text-transform: uppercase; }
+        tr:nth-child(even) { background-color: #f8f8f8; }
+        tr:hover { background-color: #fff1e6; }
+    </style>
 </head>
-<body style="font-family:'Arial', sans-serif;">
-$htmlContent
+<body>
+    <h1>Microsoft Defender Recommendations Report</h1>
+    $($modifiedRecommendations | ConvertTo-Html -Fragment)
 </body>
 </html>
 "@
 
-# Export the HTML document
-$outputPath = "./Defender_Recommendations_Report.html"
-$htmlDocument | Out-File -FilePath $outputPath -Encoding UTF8
+$htmlContent | Out-File -FilePath $htmlOutputPath -Encoding UTF8
 
-Write-Host "HTML report generated at $outputPath"
-
-# Open the HTML report in the default browser
-Invoke-Item $outputPath
+Write-Host "Simplified recommendations exported to CSV: $csvOutputPath"
+Write-Host "Simplified recommendations exported to HTML: $htmlOutputPath"
