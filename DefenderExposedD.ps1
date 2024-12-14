@@ -63,37 +63,8 @@ foreach ($recommendation in $recommendations) {
     $modifiedRecommendations += $customRecommendation
 }
 
-# Export to CSV
-$csvOutputPath = "C:\Users\mohamed.elmi\Downloads\Defender_Recommendations_Simplified.csv"
-$modifiedRecommendations | Export-Csv -Path $csvOutputPath -NoTypeInformation
+# Export the modified recommendations to a CSV file
+$outputPath = "C:\Users\Moham\Downloads\Defender_Recommendations_Simplified.csv"
+$modifiedRecommendations | Export-Csv -Path $outputPath -NoTypeInformation
 
-# Export to HTML
-$htmlOutputPath = "C:\Users\mohamed.elmi\Downloads\Defender_Recommendations_Simplified.html"
-$htmlContent = @"
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microsoft Defender Recommendations Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1600px; margin: auto; padding: 20px; }
-        h1 { color: #f7630c; text-align: center; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f7630c; color: white; text-transform: uppercase; }
-        tr:nth-child(even) { background-color: #f8f8f8; }
-        tr:hover { background-color: #fff1e6; }
-    </style>
-</head>
-<body>
-    <h1>Microsoft Defender Recommendations Report</h1>
-    $($modifiedRecommendations | ConvertTo-Html -Fragment)
-</body>
-</html>
-"@
-
-$htmlContent | Out-File -FilePath $htmlOutputPath -Encoding UTF8
-
-Write-Host "Simplified recommendations exported to CSV: $csvOutputPath"
-Write-Host "Simplified recommendations exported to HTML: $htmlOutputPath"
+Write-Host "Simplified recommendations exported to $outputPath"
