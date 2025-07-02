@@ -64,7 +64,7 @@ foreach ($recommendation in $recommendations) {
 }
 
 # Export the modified recommendations to a CSV file
-$outputPath = "C:\Users\Moham\Downloads\Defender_Recommendations_Simplified.csv"
+$outputPath = "Enter Path here"
 $modifiedRecommendations | Export-Csv -Path $outputPath -NoTypeInformation
 
 Write-Host "Simplified recommendations exported to $outputPath"
